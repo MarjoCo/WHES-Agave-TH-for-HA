@@ -1,0 +1,459 @@
+# WHES Agave TH dashboard. Paste into: Settings -> Dashboards -> Add dashboard -> New dashboard
+# from scratch -> Edit dashboard -> Raw configuration editor. No custom cards needed.
+# The Control view needs the control package; delete that view if you only use monitoring.
+
+title: WHES Agave TH
+views:
+- title: Agave
+  path: agave
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: ⚡ Real-time Power
+    - type: gauge
+      entity: sensor.agave_battery_soc
+      name: Battery SOC (%)
+      min: 0
+      max: 100
+      needle: true
+      segments:
+      - from: 0
+        color: var(--error-color)
+      - from: 25
+        color: var(--warning-color)
+      - from: 35
+        color: var(--success-color)
+      grid_options:
+        columns: 4
+        rows: 2
+    - type: gauge
+      entity: sensor.agave_grid_total_power
+      name: Grid Power (W)
+      min: -4500
+      max: 17000
+      needle: true
+      segments:
+      - from: -4500
+        color: var(--success-color)
+      - from: 4000
+        color: var(--warning-color)
+      - from: 10000
+        color: var(--error-color)
+      grid_options:
+        columns: 4
+        rows: 2
+    - type: gauge
+      entity: sensor.agave_battery_power_pcs
+      name: Battery (W)
+      min: -9900
+      max: 10000
+      needle: true
+      segments:
+      - from: -9900
+        color: var(--error-color)
+      - from: -2000
+        color: var(--success-color)
+      - from: 2000
+        color: var(--warning-color)
+      grid_options:
+        columns: 4
+        rows: 2
+    - type: gauge
+      entity: sensor.agave_pv1_power
+      name: PV1 (W)
+      min: 0
+      max: 10000
+      needle: true
+      segments:
+      - from: 0
+        color: var(--error-color)
+      - from: 500
+        color: var(--warning-color)
+      - from: 2000
+        color: var(--success-color)
+      grid_options:
+        columns: 4
+        rows: 2
+    - type: gauge
+      entity: sensor.agave_pv2_power
+      name: PV2 (W)
+      min: 0
+      max: 10000
+      needle: true
+      segments:
+      - from: 0
+        color: var(--error-color)
+      - from: 500
+        color: var(--warning-color)
+      - from: 2000
+        color: var(--success-color)
+      grid_options:
+        columns: 4
+        rows: 2
+    - type: heading
+      heading: 🔢 Energy Meters
+    - type: entities
+      title: Daily Energy
+      show_header_toggle: false
+      entities:
+      - entity: sensor.agave_solar_production_daily
+        name: Solar Production Daily (kWh)
+        icon: mdi:solar-power
+      - entity: sensor.agave_battery_charge_daily
+        name: Battery Charge Daily (kWh)
+        icon: mdi:battery-plus
+      - entity: sensor.agave_battery_discharge_daily
+        name: Battery Discharge Daily (kWh)
+        icon: mdi:battery-minus
+      - entity: sensor.agave_grid_import_daily
+        name: Grid Import Daily (kWh)
+        icon: mdi:transmission-tower-import
+      - entity: sensor.agave_grid_export_daily
+        name: Grid Export Daily (kWh)
+        icon: mdi:transmission-tower-export
+      - entity: sensor.agave_eps_output_daily
+        name: EPS Output Daily (kWh)
+        icon: mdi:home-battery
+    - type: entities
+      title: Cumulative Energy (all time)
+      show_header_toggle: false
+      entities:
+      - entity: sensor.agave_total_pv_energy
+        name: Total PV Energy (kWh)
+        icon: mdi:solar-power
+      - entity: sensor.agave_battery_total_charge_energy
+        name: Battery Total Charge (kWh)
+        icon: mdi:battery-plus
+      - entity: sensor.agave_battery_total_discharge_energy
+        name: Battery Total Discharge (kWh)
+        icon: mdi:battery-minus
+      - entity: sensor.agave_total_consumption_from_grid_energy
+        name: Total Grid Import (kWh)
+        icon: mdi:transmission-tower-import
+      - entity: sensor.agave_total_feed_to_grid_energy
+        name: Total Grid Export (kWh)
+        icon: mdi:transmission-tower-export
+      - entity: sensor.agave_total_eps_energy
+        name: Total EPS Energy (kWh)
+        icon: mdi:home-battery
+      - entity: sensor.agave_grid_to_battery_energy
+        name: Grid to Battery Total (kWh)
+        icon: mdi:battery-charging
+      - entity: sensor.agave_battery_to_grid_energy
+        name: Battery to Grid Total (kWh)
+        icon: mdi:battery-arrow-up
+    - type: heading
+      heading: 🚨 Error Codes & Diagnostics
+    - type: entities
+      title: DSP / EMS / BMS Errors
+      show_header_toggle: false
+      entities:
+      - entity: sensor.agave_dsp_error_code
+        name: DSP Error Code
+        icon: mdi:alert-circle-outline
+      - entity: sensor.agave_dsp_error_text
+        name: DSP Error Description
+        icon: mdi:alert-circle-outline
+      - type: divider
+      - entity: sensor.agave_ems_error_code
+        name: EMS Error Code
+        icon: mdi:alert-circle-outline
+      - entity: sensor.agave_ems_error_text
+        name: EMS Error Description
+        icon: mdi:alert-circle-outline
+      - type: divider
+      - entity: sensor.agave_bms_error_code
+        name: BMS Error Code
+        icon: mdi:battery-alert
+      - entity: sensor.agave_bms_error_text
+        name: BMS Error Description
+        icon: mdi:battery-alert
+  - type: grid
+    cards:
+    - type: heading
+      heading: 🔋 Inverter & Battery
+    - type: entities
+      title: Key Power Metrics
+      show_header_toggle: false
+      entities:
+      - entity: sensor.agave_grid_total_power
+        name: Grid Power (W)
+        icon: mdi:transmission-tower
+      - entity: sensor.agave_battery_power_pcs
+        name: Battery Power PCS (W)
+        icon: mdi:battery-charging
+      - entity: sensor.agave_total_pv_power
+        name: Total PV Power (W)
+        icon: mdi:solar-power
+      - type: divider
+      - entity: sensor.agave_battery_soc
+        name: SOC (%)
+        icon: mdi:battery-high
+      - entity: sensor.agave_battery_remaining_kwh
+      - entity: sensor.agave_battery_soh
+        name: SOH (%)
+        icon: mdi:battery-heart-variant
+      - entity: sensor.agave_battery_usable_capacity
+      - entity: sensor.agave_battery_rated_capacity
+      - entity: sensor.agave_battery_status
+        name: Battery Status
+      - type: divider
+      - entity: sensor.agave_run_mode_text
+        name: Run Mode
+      - entity: sensor.agave_work_mode_text
+        name: Work Mode
+    - type: entities
+      title: BMS Data
+      show_header_toggle: false
+      state_color: true
+      entities:
+      - entity: sensor.agave_battery_power_bms
+      - entity: sensor.agave_battery_voltage_bms
+        name: Battery Voltage BMS (V)
+        icon: mdi:sine-wave
+      - entity: sensor.agave_battery_current_bms
+        name: Battery Current BMS (A)
+        icon: mdi:current-dc
+      - entity: sensor.agave_battery_power_bms
+        name: Battery Power BMS (W)
+        icon: mdi:battery-charging
+      - entity: sensor.agave_bms_max_charge_current
+      - entity: sensor.agave_bms_max_discharge_current
+      - type: divider
+      - entity: sensor.agave_cell_max_voltage
+        name: Cell Max Voltage (V)
+        icon: mdi:sine-wave
+      - entity: sensor.agave_cell_min_voltage
+        name: Cell Min Voltage (V)
+        icon: mdi:sine-wave
+      - entity: sensor.agave_cell_max_voltage_id
+      - entity: sensor.agave_cell_min_voltage_id
+      - entity: sensor.agave_cell_max_temperature
+        name: Cell Max Temperature (°C)
+        icon: mdi:thermometer-high
+      - entity: sensor.agave_cell_min_temperature
+        name: Cell Min Temperature (°C)
+        icon: mdi:thermometer-low
+      - type: divider
+      - entity: sensor.agave_inverter_sink_temperature
+        name: Inverter Sink Temperature (°C)
+        icon: mdi:thermometer
+      - entity: sensor.agave_buck_boost_sink_temperature
+      - entity: sensor.agave_pv_boost_sink_temperature
+      - entity: sensor.agave_bms_status
+        name: BMS Status (raw)
+        icon: mdi:information-outline
+    - type: entities
+      title: PV Data
+      show_header_toggle: false
+      state_color: true
+      entities:
+      - entity: sensor.agave_pv1_power
+        name: PV1 Power (W)
+        icon: mdi:solar-panel
+      - entity: sensor.agave_pv1_voltage
+        name: PV1 Voltage (V)
+        icon: mdi:sine-wave
+      - entity: sensor.agave_pv1_current
+        name: PV1 Current (A)
+        icon: mdi:current-dc
+      - type: divider
+      - entity: sensor.agave_pv2_power
+        name: PV2 Power (W)
+        icon: mdi:solar-panel
+      - entity: sensor.agave_pv2_voltage
+        name: PV2 Voltage (V)
+        icon: mdi:sine-wave
+      - entity: sensor.agave_pv2_current
+        name: PV2 Current (A)
+        icon: mdi:current-dc
+    - type: entities
+      title: Phase currents & power
+      show_header_toggle: false
+      entities:
+      - entity: sensor.agave_phase_r_current
+        name: Phase R Current (A)
+        icon: mdi:current-ac
+      - entity: sensor.agave_phase_s_current
+        name: Phase S Current (A)
+        icon: mdi:current-ac
+      - entity: sensor.agave_phase_t_current
+        name: Phase T Current (A)
+        icon: mdi:current-ac
+      - type: divider
+      - entity: sensor.agave_phase_r_power
+        name: Phase R Power (W)
+        icon: mdi:lightning-bolt
+      - entity: sensor.agave_phase_s_power
+        name: Phase S Power (W)
+        icon: mdi:lightning-bolt
+      - entity: sensor.agave_phase_t_power
+        name: Phase T Power (W)
+        icon: mdi:lightning-bolt
+      - type: divider
+      - entity: sensor.agave_phase_r_voltage
+        name: Phase R Voltage (V)
+        icon: mdi:sine-wave
+      - entity: sensor.agave_phase_s_voltage
+        name: Phase S Voltage (V)
+        icon: mdi:sine-wave
+      - entity: sensor.agave_phase_t_voltage
+        name: Phase T Voltage (V)
+        icon: mdi:sine-wave
+    - type: entities
+      title: Agave EPS (Backup Power)
+      show_header_toggle: false
+      entities:
+      - type: section
+        label: Phase R
+      - entity: sensor.agave_eps_phase_r_active_power
+      - entity: sensor.agave_eps_phase_r_voltage
+      - entity: sensor.agave_eps_phase_r_current
+      - type: section
+        label: Phase S
+      - entity: sensor.agave_eps_phase_s_active_power
+      - entity: sensor.agave_eps_phase_s_voltage
+      - entity: sensor.agave_eps_phase_s_current
+      - type: section
+        label: Phase T
+      - entity: sensor.agave_eps_phase_t_active_power
+      - entity: sensor.agave_eps_phase_t_voltage
+      - entity: sensor.agave_eps_phase_t_current
+      - type: divider
+      - entity: sensor.agave_eps_output_daily
+        name: EPS Output Daily (kWh)
+      - entity: sensor.agave_total_eps_energy
+        name: EPS Total Energy (kWh)
+- title: Control
+  path: control
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: 🎛️ Control
+    - type: entities
+      title: System Control
+      show_header_toggle: false
+      entities:
+      - entity: sensor.agave_run_mode_text
+        name: Run Mode
+      - entity: sensor.agave_work_mode_text
+        name: Work Mode
+      - entity: input_select.agave_set_work_mode
+        name: Set Work Mode
+    - type: conditional
+      conditions:
+      - entity: sensor.agave_work_mode_text
+        state: VPP Mode 1 - Full external control
+      card:
+        type: entities
+        title: VPP Mode 1 – Full External Control
+        entities:
+        - entity: number.agave_set_battery_power
+          name: Battery Power (W)
+        - entity: number.agave_set_inverter_power_limit
+          name: Inverter Power Limit (W)
+        - entity: number.agave_pv_power_limit
+          name: PV Power Limit (W)
+        - entity: number.agave_max_feed_in_limit
+          name: Max Feed-in Limit (%)
+        - entity: number.agave_set_battery_minimum_soc
+          name: Battery Min SOC (%)
+        - entity: number.agave_set_vpp_timer
+          name: VPP Timer (s)
+        - entity: switch.agave_vpp_timer_enable
+          name: VPP Timer Enable
+        - entity: sensor.agave_vpp_timer_enable
+    - type: conditional
+      conditions:
+      - entity: sensor.agave_work_mode_text
+        state: PV charge only
+      card:
+        type: entities
+        title: VPP Mode 2 – PV Charge Only
+        entities:
+        - entity: number.agave_max_feed_in_limit
+          name: Max Feed-in Limit (%)
+        - entity: number.agave_pv_power_limit
+          name: PV Power Limit (W)
+        - entity: number.agave_set_battery_minimum_soc
+          name: Battery Min SOC (%)
+        - entity: number.agave_set_vpp_timer
+          name: VPP Timer (s)
+        - entity: switch.agave_vpp_timer_enable
+          name: VPP Timer Enable
+    - type: conditional
+      conditions:
+      - entity: sensor.agave_work_mode_text
+        state: Discharge only
+      card:
+        type: entities
+        title: VPP Mode 3 – Discharge Only
+        entities:
+        - entity: number.agave_max_feed_in_limit
+          name: Max Feed-in Limit (%)
+        - entity: number.agave_pv_power_limit
+          name: PV Power Limit (W)
+        - entity: number.agave_set_battery_minimum_soc
+          name: Battery Min SOC (%)
+        - entity: number.agave_set_vpp_timer
+          name: VPP Timer (s)
+        - entity: switch.agave_vpp_timer_enable
+          name: VPP Timer Enable
+    - type: conditional
+      conditions:
+      - entity: sensor.agave_work_mode_text
+        state: Normal Mode (ECOS control)
+      card:
+        type: markdown
+        content: "**Normal (ECOS control)**\n\nThe battery runs on the working mode
+          and settings of the ECOS app. Battery power cannot be set from Home Assistant
+          in this mode.\n"
+    - type: entities
+      title: Modbus Register Values (raw)
+      show_header_toggle: false
+      entities:
+      - entity: sensor.agave_work_mode
+        name: Work Mode (register)
+      - entity: sensor.agave_remote_on_off_status
+        name: Remote On/Off
+      - entity: sensor.agave_max_feedin_limit
+        name: Max Feed-in (%)
+      - entity: sensor.agave_battery_minimum_soc
+        name: Battery Min SOC (%)
+      - entity: sensor.agave_vpp_timer
+        name: VPP Timer (s)
+      - entity: sensor.agave_vpp_timer_enable
+        name: VPP Timer Enable
+      - entity: sensor.agave_battery_power_reference
+        name: Battery Power Ref (W)
+      - entity: sensor.agave_inverter_power_limit
+        name: Inverter Power Limit (W)
+      - entity: sensor.agave_pv_power_limit
+        name: PV Power Limit (W)
+    - type: entities
+      title: VPP watchdog (60010 / 60011)
+      show_header_toggle: false
+      entities:
+      - type: section
+        label: Now — what the inverter has
+      - entity: input_boolean.agave_vpp_watchdog_enabled
+        name: Watchdog enabled (HA writes 60010/60011)
+      - entity: sensor.agave_vpp_timer
+        name: 60010 timer now (s, 0 = off)
+      - entity: sensor.agave_vpp_timer_enable
+        name: 60011 enable now (1 = on)
+      - entity: input_select.agave_set_work_mode
+        name: Work mode
+        type: simple-entity
+      - type: section
+        label: Settings
+      - entity: input_number.agave_vpp_timeout_s
+        name: Timeout while charging (fuse risk)
+      - entity: input_number.agave_vpp_timeout_sell_s
+        name: Timeout while selling / hold

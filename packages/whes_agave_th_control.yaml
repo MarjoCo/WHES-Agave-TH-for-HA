@@ -1,0 +1,475 @@
+# WHES Agave TH (formerly Ecos eCactus) — control package for Home Assistant
+#
+# OPTIONAL. Writes to the inverter's control registers 60001-60012. Install it
+# only after the monitoring package (whes_agave_th_monitor.yaml) works, and
+# read README.md "Control package" first.
+#
+# - 60001 work mode: Normal (ECOS control) / Full external control (VPP mode 1)
+#   / PV charge only / Discharge only.
+# - In Full external control the inverter does NOT limit grid import: HA alone
+#   decides the battery power, so keeping house load + charging under your main
+#   fuse is your job.
+# - Turn on input_boolean.agave_vpp_watchdog_enabled before using Full external
+#   control: the inverter then returns to ECOS by itself if HA stops.
+# - Battery minimum SOC (60012) can never be set below 10 %.
+# - 60002 Remote on/off (stops the whole system) is deliberately read only.
+#
+# Needs the monitoring package: it defines the Modbus hub and the read-back
+# sensors these entities and automations use.
+
+input_select:
+  agave_set_work_mode:
+    name: "Agave Set Work Mode"
+    icon: mdi:cog-transfer
+    options:
+      - "Normal (ECOS control)"
+      - "Full external control"
+      - "PV charge only"
+      - "Discharge only"
+
+input_boolean:
+  # Master switch for the watchdog automations. The manufacturer recommends
+  # always using the VPP timer: turn this on before you use Full external control.
+  agave_vpp_watchdog_enabled:
+    name: "Agave VPP watchdog enabled"
+    icon: mdi:shield-sync-outline
+
+input_number:
+  # Watchdog timeout while charging (PowerRef < 0) and while selling or holding.
+  # Charging gets the short one: if HA stops while charging from the grid, the
+  # inverter keeps drawing until the timer runs out.
+  agave_vpp_timeout_s:
+    name: "Agave VPP watchdog timeout"
+    min: 10
+    max: 300
+    step: 5
+    unit_of_measurement: "s"
+    mode: box
+    icon: mdi:timer-alert-outline
+    initial: 30
+  agave_vpp_timeout_sell_s:
+    name: "Agave VPP watchdog timeout (selling / hold)"
+    min: 10
+    max: 600
+    step: 5
+    initial: 120
+    unit_of_measurement: "s"
+    mode: box
+    icon: mdi:timer-sand
+
+template:
+
+  - switch:
+      # Manual VPP watchdog switch. The watchdog automations below handle it
+      # automatically when input_boolean.agave_vpp_watchdog_enabled is on.
+      - name: "Agave VPP Timer Enable"
+        unique_id: agave_switch_vpp_timer_enable
+        icon: mdi:timer-cog-outline
+        state: "{{ states('sensor.agave_vpp_timer_enable') | int(0) == 1 }}"
+        turn_on:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_vpp_timer_enable')
+                 and states('sensor.agave_vpp_timer_enable') | int(-1) != 1 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60011
+              value: 1
+        turn_off:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_vpp_timer_enable')
+                 and states('sensor.agave_vpp_timer_enable') | int(-1) != 0 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60011
+              value: 0
+
+  - number:
+      # Every write below is skipped when the inverter already has the value.
+      # 60003 feed-in limit is not effective in VPP mode 1 (protocol V1.2.2).
+      - name: "Agave Max Feed-in Limit"
+        unique_id: agave_number_max_feedin_limit
+        unit_of_measurement: "%"
+        min: 0
+        max: 100
+        step: 1
+        icon: mdi:transmission-tower-export
+        state: "{{ states('sensor.agave_max_feedin_limit') | float(0) }}"
+        set_value:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_max_feedin_limit')
+                 and ((value | float(0)) - (states('sensor.agave_max_feedin_limit') | float(0))) | abs >= 0.5 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60003
+              value: "{{ value | int }}"
+      # 60004 PowerRef. Positive = discharge, negative = charge. Only effective in
+      # Full external control: select the work mode FIRST, then write the power.
+      # A value written while ECOS is in control is overwritten by ECOS.
+      - name: "Agave Set Battery Power"
+        unique_id: agave_set_battery_power
+        icon: mdi:battery-charging
+        unit_of_measurement: "W"
+        state: "{{ states('sensor.agave_battery_power_reference') | int(0) }}"
+        min: -12800
+        max: 13200
+        step: 100
+        set_value:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_battery_power_reference')
+                 and ((value | float(0)) - (states('sensor.agave_battery_power_reference') | float(0))) | abs >= 0.5 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60004
+              value: >
+                {% set val = value | int %}
+                {% if val < 0 %}{{ 65536 + val }}{% else %}{{ val }}{% endif %}
+      - name: "Agave Set Inverter Power Limit"
+        unique_id: agave_set_inv_power_limit
+        unit_of_measurement: "W"
+        min: 0
+        max: 13000
+        step: 100
+        icon: mdi:solar-power
+        state: "{{ states('sensor.agave_inverter_power_limit') | float(0) }}"
+        set_value:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_inverter_power_limit')
+                 and ((value | float(0)) - (states('sensor.agave_inverter_power_limit') | float(0))) | abs >= 0.5 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60008
+              value: "{{ value | int }}"
+      - name: "Agave PV Power Limit"
+        unique_id: agave_set_pv_power_limit
+        unit_of_measurement: "W"
+        min: 0
+        max: 17500
+        step: 100
+        icon: mdi:solar-panel
+        state: "{{ states('sensor.agave_pv_power_limit') | float(0) }}"
+        set_value:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_pv_power_limit')
+                 and ((value | float(0)) - (states('sensor.agave_pv_power_limit') | float(0))) | abs >= 0.5 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60009
+              value: "{{ value | int }}"
+      - name: "Agave Set VPP Timer"
+        unique_id: agave_set_vpp_timer
+        unit_of_measurement: "s"
+        min: 0
+        max: 5000
+        step: 10
+        icon: mdi:timer-outline
+        state: "{{ states('sensor.agave_vpp_timer') | float(0) }}"
+        set_value:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_vpp_timer')
+                 and ((value | float(0)) - (states('sensor.agave_vpp_timer') | float(0))) | abs >= 0.5 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60010
+              value: "{{ value | int }}"
+      # 60012 battery minimum SOC. Never below 10 % (manufacturer's recommended
+      # minimum): the UI cannot go lower, and the write clamps 10-100 even when the
+      # value comes from an automation or a service call.
+      - name: "Agave Set Battery Minimum SOC"
+        unique_id: agave_set_bat_min_soc
+        unit_of_measurement: "%"
+        min: 10
+        max: 100
+        step: 1
+        icon: mdi:battery-alert-variant-outline
+        availability: "{{ has_value('sensor.agave_battery_minimum_soc') }}"
+        state: "{{ states('sensor.agave_battery_minimum_soc') | float(0) }}"
+        set_value:
+          - variables:
+              target: "{{ [[value | int(10), 10] | max, 100] | min }}"
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_battery_minimum_soc')
+                 and (target - (states('sensor.agave_battery_minimum_soc') | float(0))) | abs >= 0.5 }}
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60012
+              value: "{{ target }}"
+
+automation:
+
+  - id: agave_sync_work_mode_from_modbus
+    alias: "Agave: Sync Work Mode from Modbus"
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: sensor.agave_work_mode
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none and trigger.to_state is not none
+            and trigger.from_state.state in ['0','1','2','3']
+            and trigger.to_state.state in ['0','1','2','3']
+            and trigger.from_state.state != trigger.to_state.state }}
+    actions:
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.agave_set_work_mode
+        data:
+          option: >
+            {% set mode = trigger.to_state.state | int(0) %}
+            {% if mode == 0 %}Normal (ECOS control)
+            {% elif mode == 1 %}Full external control
+            {% elif mode == 2 %}PV charge only
+            {% elif mode == 3 %}Discharge only
+            {% else %}Normal (ECOS control){% endif %}
+  # Writes 60001 only when the inverter is not already in the selected mode.
+  # Each work mode write keeps the bus busy for about 5 s: do not switch modes
+  # every few seconds.
+
+  - id: agave_sync_work_mode_to_modbus
+    alias: "Agave: Sync Work Mode to Modbus"
+    mode: queued
+    triggers:
+      - trigger: state
+        entity_id: input_select.agave_set_work_mode
+        to:
+          - "Normal (ECOS control)"
+          - "Full external control"
+          - "PV charge only"
+          - "Discharge only"
+    conditions:
+      - condition: template
+        value_template: >
+          {% set s = states('sensor.agave_work_mode') %}
+          {{ s not in ['unknown','unavailable','none',''] }}
+      - condition: template
+        value_template: >
+          {% set current = states('sensor.agave_work_mode') | int(-1) %}
+          {% set selected = trigger.to_state.state %}
+          {% set target = (
+            0 if selected == 'Normal (ECOS control)' else
+            1 if selected == 'Full external control' else
+            2 if selected == 'PV charge only' else
+            3 if selected == 'Discharge only' else
+            -1
+          ) %}
+          {{ target != -1 and current != target }}
+    actions:
+      - action: modbus.write_register
+        data:
+          hub: agave_inverter
+          slave: 1
+          address: 60001
+          value: >
+            {% set selected = trigger.to_state.state %}
+            {% if selected == 'Normal (ECOS control)' %}0
+            {% elif selected == 'Full external control' %}1
+            {% elif selected == 'PV charge only' %}2
+            {% elif selected == 'Discharge only' %}3
+            {% else %}0{% endif %}
+      - delay: "00:00:01"
+      - action: homeassistant.update_entity
+        target:
+          entity_id: sensor.agave_work_mode
+  # VPP watchdog (60010 / 60011): while HA keeps the inverter in Full external
+  # control, the timer is rewritten every 5 s. If HA stops, the timer runs out
+  # and the inverter returns to Normal (ECOS) by itself. Tested here: with a
+  # 120 s timeout the inverter was back in ECOS after 118-119 s. On expiry the
+  # inverter resets 60010 to its own default, 300 s.
+
+  - id: agave_vpp_watchdog_arm
+    alias: "Agave VPP watchdog – arm on Full external control"
+    description: >
+      Arms the Agave VPP watchdog (60010/60011) whenever HA takes the
+      inverter into Full external control. Writes the timeout first, then
+      enables, so the countdown never starts from a stale value.
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: state
+        entity_id: input_select.agave_set_work_mode
+        to: "Full external control"
+        id: entered_fec
+      - trigger: homeassistant
+        event: start
+        id: ha_start
+      - trigger: state
+        entity_id: input_boolean.agave_vpp_watchdog_enabled
+        to: "on"
+        id: switched_on
+    conditions:
+      - condition: state
+        entity_id: input_boolean.agave_vpp_watchdog_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_select.agave_set_work_mode
+        state: "Full external control"
+    actions:
+      - action: modbus.write_register
+        data:
+          hub: agave_inverter
+          slave: 1
+          address: 60010
+          value: >
+            {{ (states('input_number.agave_vpp_timeout_s') | int(30))
+               if states('number.agave_set_battery_power') | float(0) < 0
+               else (states('input_number.agave_vpp_timeout_sell_s') | int(120)) }}
+      - delay: "00:00:01"
+      - action: modbus.write_register
+        data:
+          hub: agave_inverter
+          slave: 1
+          address: 60011
+          value: 1
+      - action: logbook.log
+        data:
+          name: Agave VPP watchdog
+          entity_id: input_select.agave_set_work_mode
+          message: >
+            🛡️ Armed, timeout {{ (states('input_number.agave_vpp_timeout_s') | int(30))
+            if states('number.agave_set_battery_power') | float(0) < 0
+            else (states('input_number.agave_vpp_timeout_sell_s') | int(120)) }} s
+            ({{ 'charging' if states('number.agave_set_battery_power') | float(0) < 0
+            else 'selling / hold' }}, {{ trigger.id }})
+
+  - id: agave_vpp_watchdog_refresh
+    alias: "Agave VPP watchdog – refresh"
+    description: >
+      Rewrites 60010 every 5 s while the inverter is under HA control. This
+      is the dead-man refresh: if HA stops, the countdown runs out and the
+      inverter returns to ECOS control on its own. Goes straight to
+      modbus.write_register because number.agave_set_vpp_timer skips writes
+      that do not change the value.
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: time_pattern
+        seconds: "/5"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.agave_vpp_watchdog_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_select.agave_set_work_mode
+        state: "Full external control"
+    actions:
+      - action: modbus.write_register
+        data:
+          hub: agave_inverter
+          slave: 1
+          address: 60010
+          value: >
+            {{ (states('input_number.agave_vpp_timeout_s') | int(30))
+               if states('number.agave_set_battery_power') | float(0) < 0
+               else (states('input_number.agave_vpp_timeout_sell_s') | int(120)) }}
+      - if:
+          - condition: template
+            value_template: >
+              {{ has_value('sensor.agave_vpp_timer_enable')
+                 and states('sensor.agave_vpp_timer_enable') | int(-1) != 1 }}
+        then:
+          - action: modbus.write_register
+            data:
+              hub: agave_inverter
+              slave: 1
+              address: 60011
+              value: 1
+
+  - id: agave_vpp_watchdog_disarm
+    alias: "Agave VPP watchdog – disarm when ECOS takes over"
+    description: >
+      Disables 60011 when HA hands the inverter back to ECOS, so the
+      watchdog only ever guards the periods when HA is in control.
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: state
+        entity_id: input_select.agave_set_work_mode
+        from: "Full external control"
+        id: left_fec
+      - trigger: state
+        entity_id: input_boolean.agave_vpp_watchdog_enabled
+        to: "off"
+        id: switched_off
+    conditions:
+      - condition: template
+        value_template: >
+          {{ not is_state('input_select.agave_set_work_mode',
+                          'Full external control')
+             or is_state('input_boolean.agave_vpp_watchdog_enabled', 'off') }}
+      - condition: template
+        value_template: >
+          {{ has_value('sensor.agave_vpp_timer_enable')
+             and states('sensor.agave_vpp_timer_enable') | int(-1) != 0 }}
+    actions:
+      - action: modbus.write_register
+        data:
+          hub: agave_inverter
+          slave: 1
+          address: 60011
+          value: 0
+      - action: logbook.log
+        data:
+          name: Agave VPP watchdog
+          entity_id: input_select.agave_set_work_mode
+          message: "🛡️ Disarmed ({{ trigger.id }})"
+
+  - id: agave_vpp_watchdog_expired_alert
+    alias: "Agave VPP watchdog – alert if it expired while we were in control"
+    description: >
+      The inverter dropped out of HA control by itself, i.e. the refresh did
+      not get through (or the mode was changed outside HA). Reports it;
+      changes nothing.
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: state
+        entity_id: sensor.agave_work_mode
+        from: "1"
+        to: "0"
+    conditions:
+      - condition: state
+        entity_id: input_boolean.agave_vpp_watchdog_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {{ is_state('input_select.agave_set_work_mode', 'Full external control')
+             or states.input_select.agave_set_work_mode.last_changed
+                >= trigger.to_state.last_changed }}
+    actions:
+      - action: logbook.log
+        data:
+          name: Agave VPP watchdog
+          entity_id: sensor.agave_work_mode
+          message: >
+            ⚠️ Inverter left Full external control by itself (VPP timer expired
+            or mode changed outside HA) — the 5 s refresh did not get through.
+      - action: notify.notify
+        data:
+          message: >
+            ⚠️ Agave VPP watchdog expired while HA was in control — the inverter
+            returned to ECOS on its own. Check that HA and the Modbus connection
+            are running.

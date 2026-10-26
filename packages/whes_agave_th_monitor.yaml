@@ -1,0 +1,1282 @@
+# WHES Agave TH (formerly Ecos eCactus) — monitoring package for Home Assistant
+#
+# Read only: reads the inverter over Modbus and never writes to it.
+# Before use, set your RS485-to-Ethernet converter's IP address in the
+# modbus: section below (search for CHANGE). See README.md.
+#
+# Scan intervals: 1 s for the values you control with (grid power, battery
+# power, phase currents and powers, work mode, PowerRef, EPS output),
+# 5 s for live dashboard values, 30 s for slow values, 0 = read once at start.
+#
+# Sign conventions differ between registers:
+#   36275 Grid total power     positive = import, negative = export
+#   36307 Battery power (PCS)  positive = DISCHARGE, negative = charge
+#   36303 Battery power (BMS)  positive = CHARGE, negative = discharge
+
+modbus:
+
+  - name: agave_inverter
+    type: tcp
+    host: 192.168.1.100  # <-- CHANGE: IP address of your RS485-to-Ethernet converter
+    port: 502 # <-- CHANGE if your converter uses another port
+    delay: 0
+    timeout: 5
+    retries: 3
+    close_comm_on_error: false
+    sensors:
+      # Grid power at the inverter's meter. Positive = import from grid, negative = export.
+      # Read every second: the fastest value you have for fuse protection.
+      - name: "Agave Grid Total Power"
+        unique_id: agave_grid_total_power
+        slave: 1
+        address: 36275
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      # Battery power, inverter (PCS) side. Positive = DISCHARGE, negative = charge.
+      - name: "Agave Battery Power PCS"
+        unique_id: agave_battery_power_pcs
+        slave: 1
+        address: 36307
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave Phase R Current"
+        unique_id: agave_phase_r_current
+        slave: 1
+        address: 36255
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 2
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave Phase S Current"
+        unique_id: agave_phase_s_current
+        slave: 1
+        address: 36262
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 2
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave Phase T Current"
+        unique_id: agave_phase_t_current
+        slave: 1
+        address: 36269
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 2
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave Phase R Power"
+        unique_id: agave_phase_r_power
+        slave: 1
+        address: 36257
+        input_type: input
+        data_type: int16
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave Phase S Power"
+        unique_id: agave_phase_s_power
+        slave: 1
+        address: 36264
+        input_type: input
+        data_type: int16
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave Phase T Power"
+        unique_id: agave_phase_t_power
+        slave: 1
+        address: 36271
+        input_type: input
+        data_type: int16
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      # 60001 work mode: 0 Normal (ECOS), 1 VPP mode 1 = Full external control,
+      # 2 PV charge only, 3 Discharge only.
+      - name: "Agave Work Mode"
+        unique_id: agave_work_mode_read
+        slave: 1
+        address: 60001
+        input_type: holding
+        data_type: uint16
+        scan_interval: 1
+      # 60004 PowerRef: the battery power HA asks for. Only effective in VPP mode 1.
+      - name: "Agave Battery Power Reference"
+        unique_id: agave_bat_power_ref_read
+        slave: 1
+        address: 60004
+        input_type: holding
+        data_type: int16
+        unit_of_measurement: "W"
+        scan_interval: 1
+      - name: "Agave EPS Phase R Voltage"
+        unique_id: agave_eps_phase_r_voltage
+        slave: 1
+        address: 36230
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase R Current"
+        unique_id: agave_eps_phase_r_current
+        slave: 1
+        address: 36231
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase R Active Power"
+        unique_id: agave_eps_phase_r_active_power
+        slave: 1
+        address: 36233
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase R Reactive Power"
+        unique_id: agave_eps_phase_r_reactive_power
+        slave: 1
+        address: 36235
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "var"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase S Voltage"
+        unique_id: agave_eps_phase_s_voltage
+        slave: 1
+        address: 36238
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase S Current"
+        unique_id: agave_eps_phase_s_current
+        slave: 1
+        address: 36239
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase S Active Power"
+        unique_id: agave_eps_phase_s_active_power
+        slave: 1
+        address: 36241
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase S Reactive Power"
+        unique_id: agave_eps_phase_s_reactive_power
+        slave: 1
+        address: 36243
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "var"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase T Voltage"
+        unique_id: agave_eps_phase_t_voltage
+        slave: 1
+        address: 36246
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase T Current"
+        unique_id: agave_eps_phase_t_current
+        slave: 1
+        address: 36247
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase T Active Power"
+        unique_id: agave_eps_phase_t_active_power
+        slave: 1
+        address: 36249
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave EPS Phase T Reactive Power"
+        unique_id: agave_eps_phase_t_reactive_power
+        slave: 1
+        address: 36251
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "var"
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave PV1 Power"
+        unique_id: agave_pv1_power
+        slave: 1
+        address: 36155
+        input_type: input
+        data_type: uint16
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      - name: "Agave PV2 Power"
+        unique_id: agave_pv2_power
+        slave: 1
+        address: 36156
+        input_type: input
+        data_type: uint16
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 1
+      # Battery power, BMS side. Positive = CHARGE, negative = discharge
+      # (the opposite sign of PCS 36307 above).
+      - name: "Agave Battery Power BMS"
+        unique_id: agave_bat_power_bms
+        slave: 1
+        address: 36303
+        input_type: input
+        data_type: int32
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        scan_interval: 5
+      - name: "Agave Run Mode"
+        unique_id: agave_run_mode
+        slave: 1
+        address: 36101
+        input_type: input
+        data_type: uint16
+        scan_interval: 5
+      - name: "Agave Battery Total Charge Energy RAW"
+        unique_id: agave_battery_total_charge_energy_raw
+        slave: 1
+        address: 36401
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        scan_interval: 30
+      - name: "Agave Battery Total Discharge Energy RAW"
+        unique_id: agave_battery_total_discharge_energy_raw
+        slave: 1
+        address: 36403
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        scan_interval: 30
+      - name: "Agave Total PV Energy"
+        unique_id: agave_total_pv_energy
+        slave: 1
+        address: 36413
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        scan_interval: 30
+      - name: "Agave Total Feed to Grid Energy"
+        unique_id: agave_total_feed_grid
+        slave: 1
+        address: 36409
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        scan_interval: 30
+      - name: "Agave Total Consumption from Grid Energy"
+        unique_id: agave_total_from_grid
+        slave: 1
+        address: 36411
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        scan_interval: 30
+      - name: "Agave Total EPS Energy"
+        unique_id: agave_total_eps_energy
+        slave: 1
+        address: 36415
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        scan_interval: 30
+      # 36417 / 36419 need EMS V06 and DSP V05 or newer. On my unit 36417 rose while the
+      # battery charged from solar, so do not rely on it before you have checked it on yours.
+      - name: "Agave Grid to Battery Energy"
+        unique_id: agave_grid_to_bat_energy
+        slave: 1
+        address: 36417
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        scan_interval: 30
+      - name: "Agave Battery to Grid Energy"
+        unique_id: agave_bat_to_grid_energy
+        slave: 1
+        address: 36419
+        input_type: input
+        data_type: uint32
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        scan_interval: 30
+      - name: "Agave Battery SOC"
+        unique_id: agave_bat_soc
+        slave: 1
+        address: 36309
+        input_type: input
+        data_type: uint16
+        unit_of_measurement: "%"
+        device_class: battery
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Phase R Voltage"
+        unique_id: agave_phase_r_voltage
+        slave: 1
+        address: 36254
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Phase S Voltage"
+        unique_id: agave_phase_s_voltage
+        slave: 1
+        address: 36261
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Phase T Voltage"
+        unique_id: agave_phase_t_voltage
+        slave: 1
+        address: 36268
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave PV1 Voltage"
+        unique_id: agave_pv1_voltage
+        slave: 1
+        address: 36151
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave PV1 Current"
+        unique_id: agave_pv1_current
+        slave: 1
+        address: 36152
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave PV2 Voltage"
+        unique_id: agave_pv2_voltage
+        slave: 1
+        address: 36153
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave PV2 Current"
+        unique_id: agave_pv2_current
+        slave: 1
+        address: 36154
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Battery Voltage BMS"
+        unique_id: agave_bat_voltage_bms
+        slave: 1
+        address: 36301
+        input_type: input
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Battery Current BMS"
+        unique_id: agave_bat_current_bms
+        slave: 1
+        address: 36302
+        input_type: input
+        data_type: int16
+        scale: 0.01
+        precision: 2
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave BMS Max Charge Current"
+        unique_id: agave_bms_max_charge_current
+        slave: 1
+        address: 36319
+        input_type: input
+        data_type: uint16
+        scale: 0.01
+        precision: 2
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave BMS Max Discharge Current"
+        unique_id: agave_bms_max_discharge_current
+        slave: 1
+        address: 36320
+        input_type: input
+        data_type: int16
+        scale: 0.01
+        precision: 2
+        unit_of_measurement: "A"
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave BMS Status"
+        unique_id: agave_bms_status
+        slave: 1
+        address: 36102
+        input_type: input
+        data_type: uint16
+        scan_interval: 30
+      - name: "Agave DSP Error Code"
+        unique_id: agave_dsp_error_code
+        slave: 1
+        address: 36103
+        input_type: input
+        data_type: uint16
+        scan_interval: 30
+      - name: "Agave BMS Error Code"
+        unique_id: agave_bms_error_code
+        slave: 1
+        address: 36104
+        input_type: input
+        data_type: uint16
+        scan_interval: 30
+      - name: "Agave EMS Error Code"
+        unique_id: agave_ems_error_code
+        slave: 1
+        address: 36105
+        input_type: input
+        data_type: uint16
+        scan_interval: 30
+      - name: "Agave Inverter Power Limit"
+        unique_id: agave_inv_power_limit_read
+        slave: 1
+        address: 60008
+        input_type: holding
+        data_type: int16
+        unit_of_measurement: "W"
+        scan_interval: 30
+      - name: "Agave Cell Max Voltage"
+        unique_id: agave_cell_max_voltage
+        slave: 1
+        address: 36311
+        input_type: input
+        data_type: uint16
+        scale: 0.001
+        precision: 3
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Cell Max Voltage ID"
+        unique_id: agave_cell_max_voltage_id
+        slave: 1
+        address: 36312
+        input_type: input
+        data_type: uint16
+        scan_interval: 30
+      - name: "Agave Cell Min Voltage"
+        unique_id: agave_cell_min_voltage
+        slave: 1
+        address: 36313
+        input_type: input
+        data_type: uint16
+        scale: 0.001
+        precision: 3
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Cell Min Voltage ID"
+        unique_id: agave_cell_min_voltage_id
+        slave: 1
+        address: 36314
+        input_type: input
+        data_type: uint16
+        scan_interval: 30
+      - name: "Agave Cell Max Temperature"
+        unique_id: agave_cell_max_temp
+        slave: 1
+        address: 36315
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Cell Min Temperature"
+        unique_id: agave_cell_min_temp
+        slave: 1
+        address: 36317
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Inverter Sink Temperature"
+        unique_id: agave_inv_temp
+        slave: 1
+        address: 36106
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave Buck Boost Sink Temperature"
+        unique_id: agave_buck_boost_temp
+        slave: 1
+        address: 36107
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 30
+      - name: "Agave PV Boost Sink Temperature"
+        unique_id: agave_pv_boost_temp
+        slave: 1
+        address: 36108
+        input_type: input
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 30
+      # 60002 Remote on/off: 0 = the whole system is stopped. Read only in these packages.
+      - name: "Agave Remote On Off Status"
+        unique_id: agave_remote_onoff_read
+        slave: 1
+        address: 60002
+        input_type: holding
+        data_type: uint16
+        scan_interval: 30
+      - name: "Agave Max Feedin Limit"
+        unique_id: agave_feedin_limit_read
+        slave: 1
+        address: 60003
+        input_type: holding
+        data_type: uint16
+        unit_of_measurement: "%"
+        scan_interval: 30
+      - name: "Agave PV Power Limit"
+        unique_id: agave_pv_power_limit_read
+        slave: 1
+        address: 60009
+        input_type: holding
+        data_type: uint16
+        unit_of_measurement: "W"
+        scan_interval: 30
+      - name: "Agave VPP Timer"
+        unique_id: agave_vpp_timer_read
+        slave: 1
+        address: 60010
+        input_type: holding
+        data_type: uint16
+        unit_of_measurement: "s"
+        scan_interval: 5
+      - name: "Agave VPP Timer Enable"
+        unique_id: agave_vpp_timer_enable_read
+        slave: 1
+        address: 60011
+        input_type: holding
+        data_type: uint16
+        scan_interval: 5
+      # 60012 battery minimum SOC (reserve). The manufacturer recommends 10 % or more.
+      - name: "Agave Battery Minimum SOC"
+        unique_id: agave_bat_min_soc_read
+        slave: 1
+        address: 60012
+        input_type: holding
+        data_type: uint16
+        unit_of_measurement: "%"
+        scan_interval: 30
+      - name: "Agave Battery SOH"
+        unique_id: agave_bat_soh
+        slave: 1
+        address: 36310
+        input_type: input
+        data_type: uint16
+        unit_of_measurement: "%"
+        state_class: measurement
+        scan_interval: 0
+      # Rated capacity in Wh. The SOH-corrected usable capacity is
+      # sensor.agave_battery_usable_capacity (template below).
+      - name: "Agave Battery Rated Capacity"
+        unique_id: agave_bat_rated_capacity
+        slave: 1
+        address: 36321
+        input_type: input
+        data_type: uint32
+        unit_of_measurement: "Wh"
+        state_class: measurement
+        scan_interval: 0
+      # Firmware versions, ASCII, read once at start (scan_interval 0).
+      - name: "Agave DSP1 Version"
+        unique_id: agave_dsp1_version
+        slave: 1
+        address: 36020
+        input_type: input
+        data_type: string
+        count: 8
+        scan_interval: 0
+      - name: "Agave EMS Version"
+        unique_id: agave_ems_version
+        slave: 1
+        address: 36036
+        input_type: input
+        data_type: string
+        count: 8
+        scan_interval: 0
+      - name: "Agave BMS Version"
+        unique_id: agave_bms_version
+        slave: 1
+        address: 36044
+        input_type: input
+        data_type: string
+        count: 16
+        scan_interval: 0
+
+template:
+
+  - sensor:
+      - name: "Agave Total PV Power"
+        unique_id: agave_total_pv_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {{ 
+            (states('sensor.agave_pv1_power')|float(0) +
+            states('sensor.agave_pv2_power')|float(0)) | round(0)
+          }}
+      - name: "Agave Battery Status"
+        unique_id: agave_battery_status
+        state: >
+          {% set bat = states('sensor.agave_battery_power_pcs')|float(0) %}
+          {% if bat > 50 %}Discharging
+          {% elif bat < -50 %}Charging
+          {% else %}Idle
+          {% endif %}
+        icon: >
+          {% set bat = states('sensor.agave_battery_power_pcs')|float(0) %}
+          {% if bat > 0 %}mdi:battery-minus
+          {% elif bat < 0 %}mdi:battery-plus
+          {% else %}mdi:battery{% endif %}
+      - name: "Agave Run Mode Text"
+        unique_id: agave_run_mode_text
+        state: >
+          {% set mode = states('sensor.agave_run_mode')|int(-1) %}
+          {% if mode == 0 %}Waiting for Grid
+          {% elif mode == 1 %}Online
+          {% elif mode == 2 %}Offline
+          {% elif mode == 3 %}Fault
+          {% elif mode == 4 %}Reserved
+          {% elif mode == 5 %}Checking
+          {% else %}{{ this.state }}{% endif %}
+      - name: "Agave Work Mode Text"
+        unique_id: agave_work_mode_text
+        icon: mdi:cog-outline
+        state: >
+          {% set mode = states('sensor.agave_work_mode')|int(-1) %}
+          {% if mode == 0 %}Normal Mode (ECOS control)
+          {% elif mode == 1 %}VPP Mode 1 - Full external control
+          {% elif mode == 2 %}PV charge only
+          {% elif mode == 3 %}Discharge only
+          {% else %}{{ this.state }}{% endif %}
+      - name: "Agave DSP Error Text"
+        unique_id: agave_dsp_error_text
+        icon: mdi:alert-circle-outline
+        state: >
+          {% set c = states('sensor.agave_dsp_error_code')|int(-1) %}
+          {% if c == -1 %}Unavailable
+          {% elif c == 0 %}OK – No Errors
+          {% elif c == 1 %}PV1 Overvoltage Fault
+          {% elif c == 2 %}PV1 Overcurrent Fault
+          {% elif c == 3 %}PV2 Overvoltage Fault
+          {% elif c == 4 %}PV2 Overcurrent Fault
+          {% elif c == 9 %}Bus Overvoltage Fault
+          {% elif c == 10 %}No Mains Power
+          {% elif c == 11 %}Grid Voltage Fault
+          {% elif c == 12 %}Grid Current Overtrip Fault
+          {% elif c == 13 %}Grid Frequency Fault
+          {% elif c == 14 %}Inverter Temperature Fault
+          {% elif c == 15 %}DC Injection Current Overtrip
+          {% elif c == 16 %}Leakage Current Overtrip
+          {% elif c == 17 %}Insulation Resistance Too Low
+          {% elif c == 26 %}Battery Voltage Fault
+          {% elif c == 27 %}Battery Current Overtrip Fault
+          {% elif c == 28 %}Battery Temperature Fault
+          {% elif c == 29 %}Battery Boost Circuit Fault
+          {% elif c == 30 %}Battery Relay Fault
+          {% elif c == 31 %}Battery Buck Circuit Fault
+          {% elif c == 37 %}Load Voltage Overtrip Fault
+          {% elif c == 38 %}Load Current Overtrip Fault
+          {% elif c == 39 %}Overload Fault
+          {% elif c == 40 %}Load Output Short-Circuit Fault
+          {% elif c == 41 %}High Voltage Between N-PE
+          {% elif c == 43 %}LVRT Fault Warning
+          {% elif c == 44 %}Fan Fault
+          {% elif c == 45 %}Smoke Detection Alarm
+          {% elif c == 46 %}Derated Operation Alarm
+          {% elif c == 48 %}Grid-Tied Relay Fault
+          {% elif c == 49 %}EPS Relay Fault
+          {% elif c == 50 %}Bypass Relay Fault
+          {% elif c == 51 %}Memory IC Fault
+          {% elif c == 52 %}Communication Fault
+          {% elif c == 53 %}Island Fault
+          {% elif c == 54 %}Low Ambient Temperature
+          {% elif c == 55 %}Software Version Mismatch
+          {% elif c == 1001 %}Inverter Online
+          {% elif c == 1002 %}Inverter Offline
+          {% else %}Unknown DSP Error Code: {{ c }}{% endif %}
+      - name: "Agave EMS Error Text"
+        unique_id: agave_ems_error_text
+        icon: mdi:alert-circle-outline
+        state: >
+          {% set c = states('sensor.agave_ems_error_code')|int(-1) %}
+          {% if c == -1 %}Unavailable
+          {% elif c == 0 %}OK – No Errors
+          {% else %}
+            {% set errors = namespace(list=[]) %}
+            {% if c | bitwise_and(1) %}{% set errors.list = errors.list + ['Inverter Information Loss'] %}{% endif %}
+            {% if c | bitwise_and(2) %}{% set errors.list = errors.list + ['Inverter Data Loss'] %}{% endif %}
+            {% if c | bitwise_and(4) %}{% set errors.list = errors.list + ['BMS Communication Failure'] %}{% endif %}
+            {% if c | bitwise_and(8) %}{% set errors.list = errors.list + ['AC Meter Communication Failure'] %}{% endif %}
+            {% if c | bitwise_and(16) %}{% set errors.list = errors.list + ['PV Meter Communication Failure'] %}{% endif %}
+            {% if c | bitwise_and(32) %}{% set errors.list = errors.list + ['Output Overlimit Fault'] %}{% endif %}
+            {% if c | bitwise_and(64) %}{% set errors.list = errors.list + ['External Flash Not Found'] %}{% endif %}
+            {% if c | bitwise_and(128) %}{% set errors.list = errors.list + ['EEPROM Not Found'] %}{% endif %}
+            {% if c | bitwise_and(256) %}{% set errors.list = errors.list + ['Master-Slave Communication Failure'] %}{% endif %}
+            {% if c | bitwise_and(512) %}{% set errors.list = errors.list + ['RTC Not Working'] %}{% endif %}
+            {% if c | bitwise_and(1024) %}{% set errors.list = errors.list + ['Meter Type Mismatch'] %}{% endif %}
+            {% if c | bitwise_and(2048) %}{% set errors.list = errors.list + ['Diesel Generator Start Failure'] %}{% endif %}
+            {% if c | bitwise_and(4096) %}{% set errors.list = errors.list + ['PCU Relay Sticking Fault'] %}{% endif %}
+            {{ errors.list | join(', ') if errors.list else 'Unknown EMS Error: ' ~ c }}
+          {% endif %}
+      - name: "Agave BMS Error Text"
+        unique_id: agave_bms_error_text
+        icon: mdi:battery-alert
+        state: >
+          {% set c = states('sensor.agave_bms_error_code')|int(-1) %}
+          {% if c == -1 %}Unavailable
+          {% elif c == 0 %}OK – No Errors
+          {% elif c == 1 %}Battery Cell Low Voltage Alarm
+          {% elif c == 2 %}Battery Cell High Voltage Alarm
+          {% elif c == 3 %}Total Voltage Low Alarm
+          {% elif c == 4 %}Total Voltage High Alarm
+          {% elif c == 5 %}Charge Low Temperature Alarm
+          {% elif c == 6 %}Charge High Temperature Alarm
+          {% elif c == 7 %}Discharge Low Temperature Alarm
+          {% elif c == 8 %}Discharge High Temperature Alarm
+          {% elif c == 9 %}Charging Overcurrent Alarm
+          {% elif c == 10 %}Discharging Overcurrent Alarm
+          {% elif c == 11 %}BMS High Temperature Alarm
+          {% elif c == 12 %}Module High Temperature Alarm
+          {% elif c == 13 %}Module Low Voltage Alarm
+          {% elif c == 14 %}Module High Voltage Alarm
+          {% elif c == 15 %}SOC Low Alarm
+          {% elif c == 16 %}Flash Userdata Invalid Alarm
+          {% elif c == 25 %}Battery Cell Under Voltage Protection
+          {% elif c == 26 %}Battery Cell Over Voltage Protection
+          {% elif c == 27 %}Total Voltage Low Protection
+          {% elif c == 28 %}Total Voltage High Protection
+          {% elif c == 29 %}Charge Under Temperature Protection
+          {% elif c == 30 %}Charge Over Temperature Protection
+          {% elif c == 31 %}Discharge Under Temperature Protection
+          {% elif c == 32 %}Discharge Over Temperature Protection
+          {% elif c == 33 %}Charging Overcurrent Protection
+          {% elif c == 34 %}Discharging Overcurrent Protection
+          {% elif c == 35 %}Short Circuit Protection
+          {% elif c == 36 %}Over Temperature Protection
+          {% elif c == 37 %}Module Under Voltage Protection
+          {% elif c == 38 %}Module Over Voltage Protection
+          {% elif c == 39 %}Voltage Sensor Failure
+          {% elif c == 40 %}Temperature Sample Error
+          {% elif c == 41 %}Internal Communication Error
+          {% elif c == 42 %}Input Overvoltage Fault
+          {% elif c == 43 %}Input Reverse Connection Fault
+          {% elif c == 44 %}Relay Fault
+          {% elif c == 45 %}Battery Damage Fault
+          {% elif c == 46 %}Shutdown Circuit Error
+          {% elif c == 47 %}BMIC Error
+          {% elif c == 48 %}Internal Bus Error
+          {% elif c == 49 %}Initialization Self-Test Failure
+          {% elif c == 50 %}Energy Meter Overvoltage
+          {% elif c == 51 %}Energy Meter Undervoltage
+          {% elif c == 52 %}Energy Meter Charging Overcurrent
+          {% elif c == 53 %}Energy Meter Discharging Overcurrent
+          {% elif c == 54 %}Energy Meter Hardware Overvoltage
+          {% elif c == 55 %}Energy Meter Hardware Undervoltage
+          {% elif c == 56 %}Balance Module SYS Error
+          {% elif c == 57 %}Balance Module DEV Error
+          {% elif c == 58 %}Cell Hardware Overvoltage Fault
+          {% elif c == 59 %}Cell Hardware Undervoltage Fault
+          {% elif c == 60 %}Hardware Charging Overcurrent Fault
+          {% elif c == 61 %}Hardware Discharging Overcurrent Fault
+          {% elif c == 62 %}Hardware Total Voltage Overvoltage Fault
+          {% elif c == 63 %}Hardware Total Voltage Undervoltage or Fuse Blowout
+          {% elif c == 64 %}Battery Wiring Fault
+          {% elif c == 65 %}Communication with Host Disconnected
+          {% elif c == 66 %}ISO Fault
+          {% elif c == 67 %}DC Contactor Open Circuit
+          {% elif c == 68 %}DC Contactor Short Circuit
+          {% elif c == 69 %}Energy Meter and Balancing Module Voltage Mismatch
+          {% elif c == 70 %}Battery SOC Low Fault
+          {% elif c == 71 %}Discharge at Force Charge Mode Fault
+          {% elif c == 72 %}Other Error
+          {% elif c == 73 %}455 Cascade Communication Failure
+          {% elif c == 74 %}Hydrogen Leakage Fault
+          {% elif c == 75 %}Large Battery Voltage Difference
+          {% elif c == 76 %}Large BCU Temperature Difference
+          {% elif c == 77 %}Low SOH
+          {% elif c == 78 %}Charging Power Too High
+          {% elif c == 79 %}Discharging Power Too High
+          {% elif c == 80 %}Failed to Import Configuration File
+          {% elif c == 81 %}External Communication Error
+          {% elif c == 82 %}Pre-charging Failure
+          {% elif c == 83 %}Parallel Operation Failure
+          {% elif c == 84 %}System Error
+          {% elif c == 85 %}Hardware Error
+          {% elif c == 86 %}AFE Communication Error
+          {% elif c == 87 %}Actor Driver Error
+          {% elif c == 88 %}EEPROM Communication Error
+          {% elif c == 89 %}Voltage Detection Fault
+          {% elif c == 90 %}Temperature Measurement Fault
+          {% elif c == 91 %}Current Detection Fault
+          {% elif c == 92 %}Actor Not Turned Off
+          {% elif c == 93 %}Actor Not Turned On
+          {% elif c == 94 %}Fuse Blown
+          {% elif c == 95 %}BMU Address Error
+          {% elif c == 96 %}Fuse Connection Error
+          {% elif c == 97 %}Internal Total Voltage Error
+          {% elif c == 98 %}Breaker Offline
+          {% elif c == 99 %}Relay Offline
+          {% elif c == 100 %}AFE High Temperature
+          {% elif c == 101 %}AFE Low Temperature
+          {% elif c == 102 %}AFE Overvoltage
+          {% elif c == 103 %}AFE Undervoltage
+          {% elif c == 104 %}High Temperature Parameter Error
+          {% elif c == 105 %}Low Temperature Parameter Error
+          {% elif c == 106 %}Cell High Voltage Parameter Error
+          {% elif c == 107 %}Cell Low Voltage Parameter Error
+          {% elif c == 108 %}Pre-charging Balance Resistor High Temperature
+          {% elif c == 109 %}Balance Resistor High Temperature
+          {% elif c == 110 %}System Power Supply Undervoltage
+          {% elif c == 111 %}System Power Supply Overvoltage
+          {% elif c == 112 %}Charger Reversal Fault
+          {% elif c == 113 %}Charging Output Voltage Too High
+          {% elif c == 114 %}High Voltage Inverter Lock Error
+          {% elif c == 115 %}Hardware Current Limit Error
+          {% elif c == 116 %}Hardware Battery Error
+          {% elif c == 117 %}Battery Heater Error
+          {% elif c == 118 %}Battery Heater Protection
+          {% elif c == 119 %}Hardware Open Flame Protection
+          {% elif c == 120 %}TLY Lock
+          {% elif c == 121 %}Heater Fault
+          {% elif c == 122 %}RTC Error
+          {% elif c == 123 %}External Flash Error
+          {% elif c == 124 %}COM Lock
+          {% elif c == 125 %}TLY COM Warning
+          {% elif c == 126 %}ID Allocation Error
+          {% elif c == 127 %}Mosfet High Temperature
+          {% elif c == 128 %}Ambient Temperature High
+          {% elif c == 129 %}Ambient Temperature Low
+          {% elif c == 130 %}SOC_F Low
+          {% elif c == 131 %}SOH_F Low
+          {% elif c == 132 %}Charging Dissipation Power High
+          {% elif c == 133 %}Discharging Dissipation Power High
+          {% elif c == 134 %}Terminal High Temperature Alarm
+          {% elif c == 135 %}Fan Alarm
+          {% elif c == 136 %}Leakage Current Abnormal Alarm
+          {% elif c == 137 %}Cell Temperature Inconsistency Alarm
+          {% elif c == 138 %}Secondary Master Communication Disconnection Alarm
+          {% elif c == 139 %}Secondary Master Dragging Cabinet Alarm
+          {% elif c == 140 %}Battery Cell Secondary Undervoltage Protection
+          {% elif c == 141 %}Safety Power Abnormal
+          {% elif c == 142 %}Insulation Fault
+          {% elif c == 143 %}Emergency Shutdown Fault
+          {% elif c == 144 %}Startup Self-Test Module Series Error
+          {% elif c == 145 %}Startup Self-Test Module Capacity Error
+          {% elif c == 146 %}Startup Self-Test Module Initialization Error
+          {% elif c == 147 %}Level 3 to Level 2 Communication Failure
+          {% elif c == 148 %}Module Internal Bus Abnormality
+          {% elif c == 149 %}All Level 2 Modules Not in Fault
+          {% elif c == 150 %}Leakage Current Abnormal Fault
+          {% elif c == 151 %}Current Sensor Chip Fault
+          {% else %}Unknown BMS Error Code: {{ c }}{% endif %}
+      # Dashboard copies that keep the last value through a short read break.
+      - name: "Agave Battery SOC UI"
+        unique_id: agave_battery_soc_ui
+        unit_of_measurement: "%"
+        device_class: battery
+        state_class: measurement
+        state: >
+          {% set raw = states('sensor.agave_battery_soc') %}
+          {% if raw in ['unknown','unavailable','none',''] %}
+            {{ this.state }}
+          {% else %}
+            {% set v = raw | int(0) %}
+            {{ this.state if v == 0 else v }}
+          {% endif %}
+        icon: >
+          {% set soc = states('sensor.agave_battery_soc_ui') | int(-1) %}
+          {% set pwr = states('sensor.agave_battery_power_pcs') | int(0) %}
+          {% if soc == -1 %}mdi:battery-unknown
+          {% elif soc < 10 %}
+            {% if pwr >= 0 %}mdi:battery-alert{% else %}mdi:battery-charging-outline{% endif %}
+          {% else %}
+            {% set level = ((soc + 5) // 10) * 10 %}
+            {% if level >= 100 %}
+              {% if pwr >= 0 %}mdi:battery{% else %}mdi:battery-charging{% endif %}
+            {% else %}
+              {% if pwr >= 0 %}mdi:battery-{{ level }}{% else %}mdi:battery-charging-{{ level }}{% endif %}
+            {% endif %}
+          {% endif %}
+      - name: "Agave Grid UI"
+        unique_id: agave_grid_ui
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set raw = states('sensor.agave_grid_total_power') %}
+          {% if raw in ['unknown','unavailable','none',''] %}
+            {{ this.state }}
+          {% else %}
+            {{ raw | float }}
+          {% endif %}
+        icon: >
+          {% set p = states('sensor.agave_grid_ui') | float(0) %}
+          {% if p > 0 %}mdi:home-import-outline
+          {% elif p < 0 %}mdi:home-export-outline
+          {% else %}mdi:home-outline{% endif %}
+      - name: "Agave Battery Power PCS UI"
+        unique_id: agave_battery_power_pcs_ui
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set raw = states('sensor.agave_battery_power_pcs') %}
+          {% if raw in ['unknown','unavailable','none',''] %}
+            {{ this.state }}
+          {% else %}
+            {% set v = raw | float(0) %}
+            {% if v == 0 %}{{ this.state }}
+            {% else %}{{ v }}{% endif %}
+          {% endif %}
+      - name: "Agave Grid Import Power"
+        unique_id: agave_grid_import_power_w
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set p = states('sensor.agave_grid_total_power') | float(0) %}
+          {{ p if p > 0 else 0.0 }}
+      - name: "Agave Grid Export Power"
+        unique_id: agave_grid_export_power_w
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set p = states('sensor.agave_grid_total_power') | float(0) %}
+          {{ (p * -1) if p < 0 else 0.0 }}
+      # Rated capacity x SOH, in kWh. A level, not accumulated energy, so no
+      # device_class energy. During a read break it is unavailable rather than 0,
+      # so nothing divides by zero.
+      - name: "Agave Battery Usable Capacity"
+        unique_id: agave_battery_usable_capacity
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        availability: >
+          {{ states('sensor.agave_battery_rated_capacity') | float(0) > 0
+             and has_value('sensor.agave_battery_soh') }}
+        state: >
+          {% set rated = states('sensor.agave_battery_rated_capacity') | float(0) %}
+          {% set soh = states('sensor.agave_battery_soh') | float(100) %}
+          {{ (rated * soh / 100 / 1000) | round(3) }}
+      - name: "Agave Battery Remaining kWh"
+        unique_id: agave_battery_remaining_kwh
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        availability: >
+          {{ states('sensor.agave_battery_usable_capacity') | float(0) > 0
+             and has_value('sensor.agave_battery_soc') }}
+        state: >
+          {% set usable = states('sensor.agave_battery_usable_capacity') | float(0) %}
+          {% set soc = states('sensor.agave_battery_soc') | float(0) %}
+          {{ (usable * soc / 100) | round(2) }}
+
+  - triggers:
+      - trigger: state
+        entity_id: sensor.agave_battery_total_charge_energy_raw
+      - trigger: homeassistant
+        event: start
+    sensor:
+      # Lifetime battery charge/discharge energy for the Energy dashboard. The raw
+      # registers can drop for a moment on a read error; these never go down.
+      - name: "Agave Battery Total Charge Energy"
+        unique_id: agave_battery_total_charge_energy
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        state: >
+          {% set new = states('sensor.agave_battery_total_charge_energy_raw') | float(0) %}
+          {% set old = this.state | float(0) %}
+          {{ new if new >= old else old }}
+
+  - triggers:
+      - trigger: state
+        entity_id: sensor.agave_battery_total_discharge_energy_raw
+      - trigger: homeassistant
+        event: start
+    sensor:
+      - name: "Agave Battery Total Discharge Energy"
+        unique_id: agave_battery_total_discharge_energy
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        state: >
+          {% set new = states('sensor.agave_battery_total_discharge_energy_raw') | float(0) %}
+          {% set old = this.state | float(0) %}
+          {{ new if new >= old else old }}
+
+utility_meter:
+  agave_solar_production_daily:
+    source: sensor.agave_total_pv_energy
+    cycle: daily
+    name: Agave Solar Production Daily
+  agave_battery_charge_daily:
+    source: sensor.agave_battery_total_charge_energy
+    cycle: daily
+    name: Agave Battery Charge Daily
+  agave_battery_discharge_daily:
+    source: sensor.agave_battery_total_discharge_energy
+    cycle: daily
+    name: Agave Battery Discharge Daily
+  agave_grid_import_daily:
+    source: sensor.agave_total_consumption_from_grid_energy
+    cycle: daily
+    name: Agave Grid Import Daily
+  agave_grid_export_daily:
+    source: sensor.agave_total_feed_to_grid_energy
+    cycle: daily
+    name: Agave Grid Export Daily
+  agave_eps_output_daily:
+    source: sensor.agave_total_eps_energy
+    cycle: daily
+    name: Agave EPS Output Daily
+
+automation:
+
+  - id: agave_dsp_error_critical_notify
+    alias: "Agave DSP Error – Critical notify"
+    description: "Critical notification when the DSP error code is above 0. Does not fire when the value returns after a connection break."
+    mode: single
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.agave_dsp_error_code
+        above: 0
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none
+             and trigger.from_state.state not in ['unavailable', 'unknown', 'none', '']
+             and trigger.to_state is not none
+             and trigger.to_state.state not in ['unavailable', 'unknown', 'none', ''] }}
+    actions:
+      - action: notify.notify
+        data:
+          title: "🚨 AGAVE – DSP Error"
+          message: >
+            DSP error detected on Agave inverter.
+            Code: {{ states('sensor.agave_dsp_error_code') }}
+            Description: {{ states('sensor.agave_dsp_error_text') }}
+          data:
+            ttl: 0
+            priority: high
+            push:
+              sound:
+                name: default
+                critical: 1
+                volume: 1
+
+  - id: agave_ems_error_critical_notify
+    alias: "Agave EMS Error – Critical notify"
+    description: "Critical notification when the EMS error code is above 0. Does not fire when the value returns after a connection break."
+    mode: single
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.agave_ems_error_code
+        above: 0
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none
+             and trigger.from_state.state not in ['unavailable', 'unknown', 'none', '']
+             and trigger.to_state is not none
+             and trigger.to_state.state not in ['unavailable', 'unknown', 'none', ''] }}
+    actions:
+      - action: notify.notify
+        data:
+          title: "🚨 AGAVE – EMS Error"
+          message: >
+            EMS error detected on Agave inverter.
+            Code: {{ states('sensor.agave_ems_error_code') }}
+            Description: {{ states('sensor.agave_ems_error_text') }}
+          data:
+            ttl: 0
+            priority: high
+            push:
+              sound:
+                name: default
+                critical: 1
+                volume: 1
+
+  - id: agave_bms_error_critical_notify
+    alias: "Agave BMS Error – Critical notify"
+    description: "Critical notification when the BMS error code is above 0. Does not fire when the value returns after a connection break."
+    mode: single
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.agave_bms_error_code
+        above: 0
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none
+             and trigger.from_state.state not in ['unavailable', 'unknown', 'none', '']
+             and trigger.to_state is not none
+             and trigger.to_state.state not in ['unavailable', 'unknown', 'none', ''] }}
+    actions:
+      - action: notify.notify
+        data:
+          title: "🚨 AGAVE – BMS Error"
+          message: >
+            BMS error detected on Agave inverter.
+            Code: {{ states('sensor.agave_bms_error_code') }}
+            Description: {{ states('sensor.agave_bms_error_text') }}
+          data:
+            ttl: 0
+            priority: high
+            push:
+              sound:
+                name: default
+                critical: 1
+                volume: 1
