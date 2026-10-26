@@ -11,7 +11,7 @@ There are two packages, so that reading and controlling stay clearly apart:
 
 Start with the monitoring package. Add the control package only if you want Home Assistant to control the battery, and read [Control package](#control-package) first.
 
-**Tested on my own system.** The monitoring part has been in production use on my system since November 2025, and the control part with the VPP watchdog since October 2026. My unit:
+**Tested on my own system.** Both the monitoring and the control part have been in production use on my system since November 2025. The VPP watchdog automations were added in October 2026. My unit:
 
 - Agave TH, model WH-TIA133: 13 kW three-phase hybrid inverter, 6 battery modules (29.9 kWh, LFP)
 - Firmware: DSP 510-00004-09, EMS 511-00009-08, BMS T511-00014-10
