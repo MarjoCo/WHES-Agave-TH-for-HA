@@ -36,7 +36,7 @@ The inverter's own WiFi dongle and the ECOS app keep working alongside Modbus. T
 
 ### 0. Download the files
 
-You do not need git. Open the [latest release](https://github.com/MarjoCo/WHES-Agave-TH/releases/latest), download the **.zip** under *Assets* and unpack it on your computer.
+You do not need git. Open the [latest release](https://github.com/MarjoCo/WHES-Agave-TH-for-HA/releases/latest), download the **.zip** under *Assets* and unpack it on your computer.
 
 ### 1. Turn on packages in Home Assistant
 
