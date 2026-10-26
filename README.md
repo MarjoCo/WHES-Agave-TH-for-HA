@@ -123,7 +123,6 @@ Notes:
 
 - **Solar** counts only the panels connected to the Agave's own PV inputs (PV1 and PV2). If you have panels on another inverter, add that inverter's energy sensor as a second solar source.
 - **Battery:** use the two sensors above, not the `… RAW` sensors. The raw registers can drop for a moment on a read error; these two never go down, so a read break never shows up as a spike in the dashboard.
-- Do not add the `… Daily` sensors (for example `sensor.agave_battery_charge_daily`). They are for your own dashboards; the Energy dashboard makes its own daily totals.
 - The grid totals come from the inverter's grid meter. Your electricity company's meter is the one you are billed by, so small differences from your bill are normal.
 
 ## Control package
