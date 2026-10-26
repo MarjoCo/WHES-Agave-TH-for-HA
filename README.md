@@ -23,6 +23,7 @@ Other models and firmware versions may differ.
 
 - **One inverter only.** The packages are built for a system with one Agave TH inverter and its battery modules. Several inverters in a parallel system (master and slaves) have not been tested. In WHES's parallel wiring diagram the units talk to each other over the same VPP-485A/B terminals that this package uses. The register map has no separate registers for parallel units, so in principle nothing should change, but I do not know what a parallel system does in practice.
 - **Three-phase only.** Tested on a three-phase system. Single-phase systems have not been tested.
+- **Not for the single-phase all-in-one units.** The single-phase eCactus / Blauhoff all-in-one batteries use a different register map (for example SOC at 36155 and the VPP timer at 60007/60008, where the Agave TH has 36309 and 60010/60011), so these packages do not work on them. For those, see [driesk81/home-assistant-modbus-home-battery-blauhoff](https://github.com/driesk81/home-assistant-modbus-home-battery-blauhoff) and the [Home Assistant Community thread](https://community.home-assistant.io/t/interface-home-battery-blauhoff-or-ecactus-via-esphome-and-modbus/645345).
 
 ## What you need
 
