@@ -149,7 +149,7 @@ Every setting is written only when the inverter does not already have that value
 
 ### Work modes
 
-- **Normal (ECOS control)** (work mode 0) is the inverter's own mode and its default. The battery then runs on the settings and working mode you have chosen in the manufacturer's **ECOS app**, for example Self-powered, Load shifting (time of use) or Backup, with the app's own settings such as reserve SOC and feed-in percentage. Home Assistant only reads in this mode: it cannot set the battery power, and the app's working mode and its settings are not visible over Modbus (register 60001 only shows 0). Every time Home Assistant hands control back, or the VPP watchdog expires, the inverter returns to this mode and to your ECOS app settings.
+- **Normal (ECOS control)** (work mode 0) is the inverter's own mode and its default. The battery then runs on the settings and working mode you have chosen in the manufacturer's [**ECOS app**](https://ecactussolar.co.uk/products/ecos/) (Self-Powered, Load-Shifting or Back-Up), with the app's own settings such as reserve SOC and feed-in percentage. Home Assistant only reads in this mode: it cannot set the battery power, and the app's working mode and its settings are not visible over Modbus (register 60001 only shows 0). Every time Home Assistant hands control back, or the VPP watchdog expires, the inverter returns to this mode and to your ECOS app settings.
 - **Full external control** (VPP mode 1) is the only mode in which the battery power (PowerRef) does anything. Home Assistant decides the battery power; the inverter follows it.
 - **PV charge only** (VPP mode 2): the battery charges only from surplus solar and does not discharge.
 - **Discharge only** (VPP mode 3): the battery only discharges to cover the house and does not charge.
@@ -213,7 +213,7 @@ Register **60002 Remote on/off** stops the whole system. It is only read here (`
 - **Signs differ between registers.** Grid power 36275: positive = import. Battery power on the inverter side (PCS, 36307): positive = discharge. Battery power on the BMS side (36303): positive = charge. Getting one backwards inverts every charge/discharge decision.
 - **The feed-in limit (60003) is not effective in Full external control** (protocol V1.2.2).
 - **Grid-to-battery (36417) and battery-to-grid (36419)** need EMS V06 and DSP V05 or newer. On my unit 36417 rose while the battery charged from solar, so check it on yours before you rely on it.
-- **The ECOS app's own modes** (Self-powered, Load shifting, Backup) are not visible over Modbus. Register 60001 only tells Normal from the three VPP modes.
+- **The ECOS app's own modes** (Self-Powered, Load-Shifting, Back-Up) are not visible over Modbus. Register 60001 only tells Normal from the three VPP modes.
 
 ## Support and maintenance
 
